@@ -1,0 +1,76 @@
+<div class="page-header">
+  <div>
+    <h1>Gestion des étudiants</h1>
+    <p>Ajouter, modifier, supprimer et rechercher des étudiants.</p>
+  </div>
+</div>
+
+<div class="student-container">
+  <div class="form-card">
+    <h2>{{ isEditMode ? 'Modifier étudiant' : 'Ajouter étudiant' }}</h2>
+
+    <form [formGroup]="studentForm" (ngSubmit)="saveStudent()">
+      <input type="text" placeholder="Prénom" formControlName="firstName" />
+      <input type="text" placeholder="Nom" formControlName="lastName" />
+      <input type="email" placeholder="Email" formControlName="email" />
+      <input type="text" placeholder="Niveau" formControlName="level" />
+      <input type="text" placeholder="Domaine" formControlName="domain" />
+      <input
+        type="text"
+        placeholder="Compétences (séparées par des virgules)"
+        formControlName="skills"
+      />
+
+      <button type="submit">
+        {{ isEditMode ? 'Modifier' : 'Ajouter' }}
+      </button>
+
+      <button type="button" class="cancel" *ngIf="isEditMode" (click)="resetForm()">
+        Annuler
+      </button>
+    </form>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <h2>Liste des étudiants</h2>
+      <input type="text" placeholder="Rechercher..." (input)="searchStudents($event)" />
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Prénom</th>
+          <th>Nom</th>
+          <th>Email</th>
+          <th>Niveau</th>
+          <th>Domaine</th>
+          <th>Compétences</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr *ngFor="let student of filteredStudents">
+          <td>{{ student.firstName }}</td>
+          <td>{{ student.lastName }}</td>
+          <td>{{ student.email }}</td>
+          <td>{{ student.level }}</td>
+          <td>{{ student.domain }}</td>
+          <td>
+            <span class="skill-chip" *ngFor="let skill of student.skills">{{ skill }}</span>
+            <span class="skill-empty" *ngIf="!student.skills?.length">—</span>
+          </td>
+          <td>
+            <button type="button" class="edit" (click)="editStudent(student)">Modifier</button>
+            <button type="button" class="delete" (click)="deleteStudent(student._id)">Supprimer</button>
+          </td>
+        </tr>
+
+        <tr *ngIf="filteredStudents.length === 0">
+          <td colspan="7" class="empty">Aucun étudiant à afficher.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

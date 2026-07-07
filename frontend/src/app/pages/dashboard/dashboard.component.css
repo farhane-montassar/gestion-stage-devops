@@ -1,0 +1,91 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.welcome-card {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  color: white;
+  padding: 28px;
+  border-radius: 18px;
+}
+
+.welcome-card h1 {
+  margin: 0;
+}
+
+.welcome-card p {
+  margin-bottom: 0;
+  opacity: 0.9;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 16px;
+  padding: 22px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+}
+
+.stat-card span {
+  font-size: 34px;
+}
+
+.stat-card h2 {
+  margin: 0;
+  font-size: 28px;
+  color: #111827;
+}
+
+.stat-card p {
+  margin: 4px 0 0;
+  color: #6b7280;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}
+
+.panel {
+  background: white;
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+}
+
+.offer-item {
+  padding: 14px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.offer-item h3 {
+  margin: 0;
+  color: #1f2937;
+}
+
+.offer-item p {
+  margin: 6px 0 0;
+  color: #6b7280;
+}
+
+.empty {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+@media (max-width: 900px) {
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+}

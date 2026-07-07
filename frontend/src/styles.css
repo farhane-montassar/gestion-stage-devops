@@ -1,0 +1,49 @@
+/* ===== Styles globaux — socle de design cohérent ===== */
+
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --danger: #ef4444;
+  --text: #111827;
+  --text-muted: #6b7280;
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --border: #e5e7eb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+body {
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  color: var(--text);
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Accessibilité : focus visible sur les champs et boutons */
+input:focus,
+select:focus,
+textarea:focus,
+button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}

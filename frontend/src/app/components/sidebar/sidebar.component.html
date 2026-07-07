@@ -1,0 +1,26 @@
+<aside class="sidebar">
+  <div class="brand">
+    <span class="brand-logo">🎯</span>
+    <h2>StageApp</h2>
+  </div>
+
+  <nav class="nav">
+    <a
+      *ngFor="let item of visibleItems"
+      [routerLink]="item.route"
+      routerLinkActive="active"
+      class="nav-link"
+    >
+      <span class="nav-icon">{{ item.icon }}</span>
+      <span class="nav-label">{{ item.label }}</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-footer" *ngIf="user">
+    <div class="avatar">{{ initials }}</div>
+    <div class="user-meta">
+      <span class="user-name">{{ user.firstName }} {{ user.lastName }}</span>
+      <span class="user-role">{{ user.role }}</span>
+    </div>
+  </div>
+</aside>

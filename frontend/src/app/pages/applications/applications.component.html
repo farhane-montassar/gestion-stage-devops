@@ -1,0 +1,98 @@
+<div class="page-header">
+  <div>
+    <h1>Gestion des candidatures</h1>
+    <p>Suivre, accepter ou refuser les candidatures.</p>
+  </div>
+</div>
+
+<div class="application-container" [class.single]="!isStudent">
+  <!-- Formulaire de candidature : réservé aux étudiants -->
+  <div class="form-card" *ngIf="isStudent">
+    <h2>Postuler à une offre</h2>
+
+    <form [formGroup]="applicationForm" (ngSubmit)="saveApplication()">
+      <select formControlName="offer" aria-label="Choisir une offre">
+        <option value="">Choisir une offre</option>
+        <option *ngFor="let offer of offers" [value]="offer._id">
+          {{ offer.title }} — {{ offer.company?.name }}
+        </option>
+      </select>
+
+      <textarea placeholder="Votre motivation" formControlName="motivation"></textarea>
+
+      <div class="error" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+      <button type="submit">Envoyer ma candidature</button>
+    </form>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <h2>{{ isStudent ? 'Mes candidatures' : 'Liste des candidatures' }}</h2>
+      <input type="text" placeholder="Rechercher..." (input)="searchApplications($event)" />
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Étudiant</th>
+          <th>Offre</th>
+          <th>Entreprise</th>
+          <th>Motivation</th>
+          <th>Statut</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr *ngFor="let app of filteredApplications">
+          <td>{{ app.student?.firstName }} {{ app.student?.lastName }}</td>
+          <td>{{ app.offer?.title }}</td>
+          <td>{{ app.offer?.company?.name }}</td>
+          <td>{{ app.motivation }}</td>
+          <td>
+            <span
+              class="status"
+              [class.accepted]="app.status === 'Acceptée'"
+              [class.rejected]="app.status === 'Refusée'"
+            >
+              {{ app.status }}
+            </span>
+          </td>
+          <td>
+            <!-- Accepter / Refuser : admin & entreprise -->
+            <button
+              type="button"
+              class="accept"
+              *ngIf="isAdmin || isCompany"
+              (click)="changeStatus(app._id, 'Acceptée')"
+            >
+              Accepter
+            </button>
+            <button
+              type="button"
+              class="reject"
+              *ngIf="isAdmin || isCompany"
+              (click)="changeStatus(app._id, 'Refusée')"
+            >
+              Refuser
+            </button>
+            <!-- Supprimer : admin & étudiant -->
+            <button
+              type="button"
+              class="delete"
+              *ngIf="isAdmin || isStudent"
+              (click)="deleteApplication(app._id)"
+            >
+              Supprimer
+            </button>
+          </td>
+        </tr>
+
+        <tr *ngIf="filteredApplications.length === 0">
+          <td colspan="6" class="empty">Aucune candidature à afficher.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

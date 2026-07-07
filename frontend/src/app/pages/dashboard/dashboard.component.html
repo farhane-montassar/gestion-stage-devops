@@ -1,0 +1,64 @@
+<div class="dashboard">
+  <div class="welcome-card">
+    <h1>Bienvenue {{ user?.firstName }} 👋</h1>
+    <p>Tableau de bord de l'application de gestion des stages</p>
+  </div>
+
+  <div class="stats-grid">
+    <!-- Étudiants : admin uniquement -->
+    <div class="stat-card" *ngIf="isAdmin">
+      <span>🎓</span>
+      <div>
+        <h2>{{ totalStudents }}</h2>
+        <p>Étudiants</p>
+      </div>
+    </div>
+
+    <!-- Entreprises : admin uniquement -->
+    <div class="stat-card" *ngIf="isAdmin">
+      <span>🏢</span>
+      <div>
+        <h2>{{ totalCompanies }}</h2>
+        <p>Entreprises</p>
+      </div>
+    </div>
+
+    <!-- Offres : tous les rôles -->
+    <div class="stat-card">
+      <span>💼</span>
+      <div>
+        <h2>{{ totalOffers }}</h2>
+        <p>Offres</p>
+      </div>
+    </div>
+
+    <!-- Candidatures : tous les rôles -->
+    <div class="stat-card">
+      <span>📄</span>
+      <div>
+        <h2>{{ totalApplications }}</h2>
+        <p>{{ isStudent ? 'Mes candidatures' : 'Candidatures' }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-grid">
+    <div class="panel">
+      <h2>Dernières offres</h2>
+
+      <div class="offer-item" *ngFor="let offer of latestOffers">
+        <h3>{{ offer.title }}</h3>
+        <p>{{ offer.domain }} — {{ offer.location }}</p>
+      </div>
+
+      <p class="empty" *ngIf="latestOffers.length === 0">Aucune offre disponible.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Utilisateur connecté</h2>
+      <p><strong>Nom :</strong> {{ user?.firstName }} {{ user?.lastName }}</p>
+      <p><strong>Email :</strong> {{ user?.email }}</p>
+      <p><strong>Rôle :</strong> {{ user?.role }}</p>
+    </div>
+  </div>
+</div>

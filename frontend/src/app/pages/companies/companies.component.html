@@ -1,0 +1,62 @@
+<div class="page-header">
+  <div>
+    <h1>Gestion des entreprises</h1>
+    <p>Ajouter, modifier, supprimer et rechercher des entreprises.</p>
+  </div>
+</div>
+
+<div class="company-container">
+  <div class="form-card">
+    <h2>{{ isEditMode ? 'Modifier entreprise' : 'Ajouter entreprise' }}</h2>
+
+    <form [formGroup]="companyForm" (ngSubmit)="saveCompany()">
+      <input type="text" placeholder="Nom entreprise" formControlName="name">
+      <input type="email" placeholder="Email" formControlName="email">
+      <input type="text" placeholder="Téléphone" formControlName="phone">
+      <input type="text" placeholder="Adresse" formControlName="address">
+      <input type="text" placeholder="Secteur" formControlName="sector">
+
+      <button type="submit">
+        {{ isEditMode ? 'Modifier' : 'Ajouter' }}
+      </button>
+
+      <button type="button" class="cancel" *ngIf="isEditMode" (click)="resetForm()">
+        Annuler
+      </button>
+    </form>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <h2>Liste des entreprises</h2>
+      <input type="text" placeholder="Rechercher..." (input)="searchCompanies($event)">
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Email</th>
+          <th>Téléphone</th>
+          <th>Adresse</th>
+          <th>Secteur</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr *ngFor="let company of filteredCompanies">
+          <td>{{ company.name }}</td>
+          <td>{{ company.email }}</td>
+          <td>{{ company.phone }}</td>
+          <td>{{ company.address }}</td>
+          <td>{{ company.sector }}</td>
+          <td>
+            <button class="edit" (click)="editCompany(company)">Modifier</button>
+            <button class="delete" (click)="deleteCompany(company._id)">Supprimer</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

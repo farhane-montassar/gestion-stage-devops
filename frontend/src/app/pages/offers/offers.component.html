@@ -1,0 +1,124 @@
+<div class="page-header">
+  <div>
+    <h1>Gestion des offres</h1>
+    <p>Consulter les offres de stage disponibles.</p>
+  </div>
+</div>
+
+<div class="offer-container" [class.single]="!canManage">
+  <!-- Création / édition : admin uniquement -->
+  <div class="form-card" *ngIf="canManage">
+    <h2>{{ isEditMode ? 'Modifier offre' : 'Ajouter offre' }}</h2>
+
+    <form [formGroup]="offerForm" (ngSubmit)="saveOffer()">
+      <input type="text" placeholder="Titre" formControlName="title" />
+
+      <textarea placeholder="Description" formControlName="description"></textarea>
+
+      <select formControlName="company" aria-label="Choisir une entreprise">
+        <option value="">Choisir une entreprise</option>
+        <option *ngFor="let company of companies" [value]="company._id">
+          {{ company.name }}
+        </option>
+      </select>
+
+      <input type="text" placeholder="Lieu" formControlName="location" />
+      <input type="text" placeholder="Durée" formControlName="duration" />
+      <input type="text" placeholder="Niveau" formControlName="level" />
+      <input type="text" placeholder="Domaine" formControlName="domain" />
+      <input
+        type="text"
+        placeholder="Compétences requises (séparées par des virgules)"
+        formControlName="requiredSkills"
+      />
+
+      <select formControlName="status" aria-label="Choisir le statut de l'offre">
+        <option value="Open">Ouverte</option>
+        <option value="Closed">Fermée</option>
+      </select>
+
+      <button type="submit">
+        {{ isEditMode ? 'Modifier' : 'Ajouter' }}
+      </button>
+
+      <button type="button" class="cancel" *ngIf="isEditMode" (click)="resetForm()">
+        Annuler
+      </button>
+    </form>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <h2>Liste des offres</h2>
+      <input type="text" placeholder="Rechercher..." (input)="searchOffers($event)" />
+    </div>
+
+    <!-- Info matching pour l'étudiant -->
+    <p class="matching-hint" *ngIf="isStudent">
+      🎯 Les offres sont triées selon votre compatibilité (domaine, niveau et compétences).
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Titre</th>
+          <th>Entreprise</th>
+          <th>Lieu</th>
+          <th>Durée</th>
+          <th>Niveau</th>
+          <th>Domaine</th>
+          <th>Compétences</th>
+          <th *ngIf="isStudent">Compatibilité</th>
+          <th>Statut</th>
+          <th *ngIf="canManage">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr *ngFor="let offer of filteredOffers">
+          <td>{{ offer.title }}</td>
+          <td>{{ offer.company?.name }}</td>
+          <td>{{ offer.location }}</td>
+          <td>{{ offer.duration }}</td>
+          <td>{{ offer.level }}</td>
+          <td>{{ offer.domain }}</td>
+          <td>
+            <span class="skill-chip" *ngFor="let skill of offer.requiredSkills">{{ skill }}</span>
+            <span class="skill-empty" *ngIf="!offer.requiredSkills?.length">—</span>
+          </td>
+
+          <!-- Colonne compatibilité (étudiant) -->
+          <td *ngIf="isStudent">
+            <ng-container *ngIf="getMatch(offer) as match">
+              <span class="match-badge" [ngClass]="match.color">
+                {{ match.emoji }} Compatible à {{ match.score }} %
+              </span>
+
+              <div class="missing" *ngIf="match.missingSkills.length">
+                <span class="missing-title">Compétences manquantes :</span>
+                <span class="missing-skill" *ngFor="let s of match.missingSkills">• {{ s }}</span>
+              </div>
+            </ng-container>
+          </td>
+
+          <td>
+            <span class="status" [class.closed]="offer.status === 'Closed'">
+              {{ offer.status === 'Open' ? 'Ouverte' : 'Fermée' }}
+            </span>
+          </td>
+
+          <td *ngIf="canManage">
+            <button type="button" class="edit" (click)="editOffer(offer)">Modifier</button>
+            <button type="button" class="delete" (click)="deleteOffer(offer._id)">Supprimer</button>
+          </td>
+        </tr>
+
+        <tr *ngIf="filteredOffers.length === 0">
+          <td [attr.colspan]="8 + (isStudent ? 1 : 0) + (canManage ? 1 : 0)" class="empty">
+            Aucune offre à afficher.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
