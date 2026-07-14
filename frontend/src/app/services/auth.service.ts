@@ -4,6 +4,26 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
+export interface RegisterPayload {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  role: 'student' | 'company';
+}
+
+export interface AuthResponse {
+  message: string;
+  token?: string;
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: string;
+  };
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -13,8 +33,12 @@ export class AuthService {
 
   constructor(private http: HttpClient) {}
 
-  login(data: { email: string; password: string }): Observable<any> {
-    return this.http.post(`${this.apiUrl}/login`, data);
+  login(data: { email: string; password: string }): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, data);
+  }
+
+  register(payload: RegisterPayload): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/register`, payload);
   }
 
   private isBrowser(): boolean {

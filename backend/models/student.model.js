@@ -29,6 +29,12 @@ const studentSchema = new mongoose.Schema(
     skills: {
       type: [String],
       default: []
+    },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      unique: true,
+      sparse: true
     }
   },
   {

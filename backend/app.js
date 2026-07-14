@@ -19,7 +19,24 @@ const app = express();
 // =========================
 // Middlewares
 // =========================
-app.use(cors());
+const allowedOrigins = [
+  "http://localhost:4200",
+  "https://gestion-stage-frontend.onrender.com"
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Autorise les outils sans origin (curl, Postman, health checks) et les origines connues
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("Origine non autorisée par CORS"));
+    },
+    credentials: true
+  })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

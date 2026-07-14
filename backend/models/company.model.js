@@ -24,6 +24,12 @@ const companySchema = new mongoose.Schema(
     sector: {
       type: String,
       required: true
+    },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      unique: true,
+      sparse: true
     }
   },
   {

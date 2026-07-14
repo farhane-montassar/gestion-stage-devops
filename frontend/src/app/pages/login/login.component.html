@@ -1,25 +1,116 @@
-<div class="login-page">
-  <div class="login-card">
-    <h1>Gestion des Stages</h1>
-    <p>Connectez-vous à votre espace</p>
+<div class="auth-page">
+  <div class="auth-card">
 
-    <form [formGroup]="loginForm" (ngSubmit)="onLogin()">
+    <div class="auth-header">
+      <h1>Gestion des Stages</h1>
+      <p *ngIf="mode === 'login'">Connectez-vous à votre espace</p>
+      <p *ngIf="mode === 'signup'">Créez votre compte en quelques secondes</p>
+    </div>
+
+    <!-- Onglets -->
+    <div class="auth-tabs">
+      <button
+        type="button"
+        [class.active]="mode === 'login'"
+        (click)="switchMode('login')">
+        Se connecter
+      </button>
+      <button
+        type="button"
+        [class.active]="mode === 'signup'"
+        (click)="switchMode('signup')">
+        Créer un compte
+      </button>
+    </div>
+
+    <!-- Messages -->
+    <div class="alert error" *ngIf="errorMessage">{{ errorMessage }}</div>
+    <div class="alert success" *ngIf="successMessage">{{ successMessage }}</div>
+
+    <!-- ================= LOGIN ================= -->
+    <form *ngIf="mode === 'login'" [formGroup]="loginForm" (ngSubmit)="onLogin()">
+      <div class="form-group">
+        <label for="login-email">Email</label>
+        <input id="login-email" type="email" formControlName="email" placeholder="exemple@gmail.com" autocomplete="email">
+      </div>
 
       <div class="form-group">
-        <label>Email</label>
-        <input type="email" formControlName="email" placeholder="exemple@gmail.com">
+        <label for="login-password">Mot de passe</label>
+        <input id="login-password" type="password" formControlName="password" placeholder="Votre mot de passe" autocomplete="current-password">
       </div>
 
-      <div class="form-group">
-        <label>Mot de passe</label>
-        <input type="password" formControlName="password" placeholder="Votre mot de passe">
-      </div>
+      <button type="submit" class="btn-primary" [disabled]="loading">
+        <span *ngIf="!loading">Se connecter</span>
+        <span *ngIf="loading" class="spinner-text"><span class="spinner"></span> Connexion...</span>
+      </button>
 
-      <div class="error" *ngIf="errorMessage">
-        {{ errorMessage }}
-      </div>
-
-      <button type="submit">Se connecter</button>
+      <p class="switch-hint">
+        Vous n'avez pas de compte ?
+        <a (click)="switchMode('signup')">Créer un compte</a>
+      </p>
     </form>
+
+    <!-- ================= SIGN UP ================= -->
+    <form *ngIf="mode === 'signup'" [formGroup]="signupForm" (ngSubmit)="onSignup()">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="signup-firstname">Prénom</label>
+          <input id="signup-firstname" type="text" formControlName="firstName" placeholder="Prénom" autocomplete="given-name">
+        </div>
+        <div class="form-group">
+          <label for="signup-lastname">Nom</label>
+          <input id="signup-lastname" type="text" formControlName="lastName" placeholder="Nom" autocomplete="family-name">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="signup-email">Email</label>
+        <input id="signup-email" type="email" formControlName="email" placeholder="exemple@gmail.com" autocomplete="email">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="signup-password">Mot de passe</label>
+          <input id="signup-password" type="password" formControlName="password" placeholder="8 caractères minimum" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label for="signup-confirm">Confirmation</label>
+          <input id="signup-confirm" type="password" formControlName="confirmPassword" placeholder="Confirmer" autocomplete="new-password">
+        </div>
+      </div>
+
+      <label class="role-label">Type de compte</label>
+      <div class="role-cards">
+        <div
+          class="role-card"
+          [class.selected]="signupForm.get('role')?.value === 'student'"
+          (click)="selectRole('student')">
+          <div class="role-icon">🎓</div>
+          <div class="role-title">Étudiant</div>
+          <div class="role-desc">Consultez les offres, postulez et suivez vos candidatures.</div>
+        </div>
+
+        <div
+          class="role-card"
+          [class.selected]="signupForm.get('role')?.value === 'company'"
+          (click)="selectRole('company')">
+          <div class="role-icon">🏢</div>
+          <div class="role-title">Entreprise</div>
+          <div class="role-desc">Publiez des offres et gérez les candidatures reçues.</div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary" [disabled]="loading">
+        <span *ngIf="!loading">Créer mon compte</span>
+        <span *ngIf="loading" class="spinner-text"><span class="spinner"></span> Création...</span>
+      </button>
+
+      <p class="switch-hint">
+        Vous avez déjà un compte ?
+        <a (click)="switchMode('login')">Se connecter</a>
+      </p>
+    </form>
+
   </div>
 </div>
