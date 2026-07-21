@@ -6,10 +6,14 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    networks:
+      - app-network
 
   backend:
     build: ./backend
     container_name: gestion_stage_backend
+    # Port publié pour le debug direct (optionnel : le trafic normal
+    # passe désormais par Nginx). Peut être retiré en prod stricte.
     ports:
       - "5000:5000"
     environment:
@@ -18,14 +22,49 @@ services:
       JWT_SECRET: gestion_stage_secret_key
     depends_on:
       - mongodb
+    networks:
+      - app-network
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        # Build Angular avec apiUrl = /api (reverse proxy Nginx).
+        BUILD_CONFIGURATION: docker
     container_name: gestion_stage_frontend
+    # Port publié pour le debug direct (optionnel).
     ports:
       - "4200:80"
     depends_on:
       - backend
+    networks:
+      - app-network
+
+  # =========================================================
+  #  Reverse Proxy Nginx = point d'entrée UNIQUE
+  #  Utilisateur ──► http://localhost:8080
+  #                   ├── /      ──► frontend (Angular)
+  #                   └── /api/  ──► backend  (Express)
+  # =========================================================
+  nginx:
+    image: nginx:alpine
+    container_name: gestion_stage_nginx
+    ports:
+      - "8080:80"
+    volumes:
+      # Monte notre configuration en lecture seule (ro).
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - app-network
+
+# Réseau Docker partagé : c'est lui qui permet aux conteneurs
+# de communiquer entre eux par leur NOM DE SERVICE (dns interne Docker).
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   mongo_data:
