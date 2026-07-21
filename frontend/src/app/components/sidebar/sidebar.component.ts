@@ -23,7 +23,8 @@ export class SidebarComponent {
     { label: 'Étudiants', icon: '🎓', route: '/students', roles: ['admin'] },
     { label: 'Entreprises', icon: '🏢', route: '/companies', roles: ['admin'] },
     { label: 'Offres', icon: '💼', route: '/offers', roles: ['admin', 'student', 'company'] },
-    { label: 'Candidatures', icon: '📄', route: '/applications', roles: ['admin', 'student', 'company'] }
+    { label: 'Candidatures', icon: '📄', route: '/applications', roles: ['admin', 'student', 'company'] },
+    { label: 'Mon profil', icon: '👤', route: '/profile', roles: ['student', 'company'] }
   ];
 
   constructor(public authService: AuthService) {}

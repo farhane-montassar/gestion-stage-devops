@@ -132,6 +132,19 @@ data/db/
 *.mongodb
 
 # ------------------------------------------------------------------------------
+# Uploads : ne JAMAIS versionner le contenu réellement téléversé,
+# mais conserver la structure des dossiers grâce aux .gitkeep.
+# ------------------------------------------------------------------------------
+backend/uploads/*
+backend/uploads/cv/*
+backend/uploads/logos/*
+!backend/uploads/.gitkeep
+!backend/uploads/cv/
+!backend/uploads/logos/
+!backend/uploads/cv/.gitkeep
+!backend/uploads/logos/.gitkeep
+
+# ------------------------------------------------------------------------------
 # Divers
 # ------------------------------------------------------------------------------
 *.zip

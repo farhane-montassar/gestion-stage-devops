@@ -20,6 +20,9 @@ services:
       PORT: 5000
       MONGO_URI: mongodb://mongodb:27017/gestion_stages
       JWT_SECRET: gestion_stage_secret_key
+    volumes:
+      # Volume NOMMÉ : les fichiers uploadés survivent à restart / down / rebuild.
+      - uploads_data:/app/uploads
     depends_on:
       - mongodb
     networks:
@@ -43,8 +46,9 @@ services:
   # =========================================================
   #  Reverse Proxy Nginx = point d'entrée UNIQUE
   #  Utilisateur ──► http://localhost:8080
-  #                   ├── /      ──► frontend (Angular)
-  #                   └── /api/  ──► backend  (Express)
+  #                   ├── /         ──► frontend (Angular)
+  #                   ├── /api/     ──► backend  (Express)
+  #                   └── /uploads/ ──► backend  (fichiers téléversés)
   # =========================================================
   nginx:
     image: nginx:alpine
@@ -68,3 +72,4 @@ networks:
 
 volumes:
   mongo_data:
+  uploads_data:

@@ -6,6 +6,7 @@ dns.setServers([
   "1.1.1.1"
 ]);
 
+const path = require("node:path");
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
@@ -69,6 +70,26 @@ app.get("/", (req, res) => {
     health: "/api/health"
   });
 });
+
+// =========================
+// Fichiers uploadés (statique sécurisé)
+//  - chemin construit avec path.join (jamais hors de /uploads) ;
+//  - index:false  -> pas de directory listing ;
+//  - dotfiles:deny -> refuse l'accès aux fichiers cachés ;
+//  - nosniff       -> empêche le navigateur de deviner un autre type MIME.
+// Express résout et bloque nativement les traversées "../".
+// =========================
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "uploads"), {
+    index: false,
+    dotfiles: "deny",
+    redirect: false,
+    setHeaders: (res) => {
+      res.setHeader("X-Content-Type-Options", "nosniff");
+    }
+  })
+);
 
 // =========================
 // API Routes

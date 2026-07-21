@@ -3,6 +3,15 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
+export interface FileMeta {
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  url: string;
+  uploadedAt: string;
+}
+
 export interface Student {
   _id?: string;
   firstName: string;
@@ -11,6 +20,7 @@ export interface Student {
   level: string;
   domain: string;
   skills?: string[];
+  cv?: FileMeta;
 }
 
 @Injectable({
@@ -40,5 +50,17 @@ export class StudentService {
 
   deleteStudent(id: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
+  }
+
+  // ---- CV de l'étudiant connecté ----
+  // On n'impose PAS de Content-Type : le navigateur génère la boundary multipart.
+  uploadCv(file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('cv', file);
+    return this.http.post(`${this.apiUrl}/me/cv`, formData);
+  }
+
+  deleteCv(): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/me/cv`);
   }
 }
