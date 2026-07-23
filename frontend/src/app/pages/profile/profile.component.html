@@ -1,0 +1,86 @@
+<div class="profile-page">
+  <h1 class="page-title">Mon profil</h1>
+
+  <!-- Messages globaux -->
+  <div class="alert alert-error" *ngIf="error">{{ error }}</div>
+  <div class="alert alert-success" *ngIf="success">{{ success }}</div>
+
+  <p class="loading" *ngIf="loading">Chargement…</p>
+
+  <!-- ============================= CV ÉTUDIANT ============================= -->
+  <section class="card" *ngIf="isStudent && !loading">
+    <h2 class="card-title">📄 Mon CV</h2>
+
+    <!-- CV présent -->
+    <div class="file-block" *ngIf="student?.cv as cv; else noCv">
+      <div class="file-info">
+        <span class="file-name">{{ cv.originalName }}</span>
+        <span class="file-size">({{ (cv.size / 1024 / 1024) | number: '1.2-2' }} Mo)</span>
+      </div>
+      <div class="actions">
+        <a class="btn btn-secondary" [href]="fileUrl(cv.url)" target="_blank" rel="noopener">
+          Voir le CV
+        </a>
+        <button class="btn btn-danger" (click)="deleteCv()" [disabled]="uploading">
+          Supprimer
+        </button>
+        <label class="btn btn-primary" [class.disabled]="uploading">
+          Remplacer
+          <input type="file" accept=".pdf,application/pdf" (change)="onCvSelected($event)" hidden />
+        </label>
+      </div>
+    </div>
+
+    <!-- Aucun CV -->
+    <ng-template #noCv>
+      <p class="empty">Aucun CV téléversé pour le moment.</p>
+      <label class="btn btn-primary" [class.disabled]="uploading">
+        Téléverser un CV (PDF, 5 Mo max)
+        <input type="file" accept=".pdf,application/pdf" (change)="onCvSelected($event)" hidden />
+      </label>
+    </ng-template>
+
+    <p class="uploading" *ngIf="uploading">⏳ Traitement en cours…</p>
+  </section>
+
+  <!-- ============================= LOGO ENTREPRISE ============================= -->
+  <section class="card" *ngIf="isCompany && !loading">
+    <h2 class="card-title">🏢 Logo de l'entreprise</h2>
+
+    <div class="file-block" *ngIf="company?.logo as logo; else noLogo">
+      <div class="logo-preview">
+        <img [src]="fileUrl(logo.url)" [alt]="'Logo ' + (company?.name || '')" />
+      </div>
+      <div class="file-info">
+        <span class="file-name">{{ logo.originalName }}</span>
+        <span class="file-size">({{ (logo.size / 1024 / 1024) | number: '1.2-2' }} Mo)</span>
+      </div>
+      <div class="actions">
+        <button class="btn btn-danger" (click)="deleteLogo()" [disabled]="uploading">
+          Supprimer
+        </button>
+        <label class="btn btn-primary" [class.disabled]="uploading">
+          Remplacer
+          <input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                 (change)="onLogoSelected($event)" hidden />
+        </label>
+      </div>
+    </div>
+
+    <ng-template #noLogo>
+      <p class="empty">Aucun logo téléversé pour le moment.</p>
+      <label class="btn btn-primary" [class.disabled]="uploading">
+        Téléverser un logo (JPG/PNG/WebP, 2 Mo max)
+        <input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+               (change)="onLogoSelected($event)" hidden />
+      </label>
+    </ng-template>
+
+    <p class="uploading" *ngIf="uploading">⏳ Traitement en cours…</p>
+  </section>
+
+  <!-- Rôle sans upload (admin) -->
+  <section class="card" *ngIf="!isStudent && !isCompany && !loading">
+    <p class="empty">Aucun fichier à gérer pour ce rôle.</p>
+  </section>
+</div>

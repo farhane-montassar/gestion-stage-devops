@@ -30,6 +30,20 @@ const companySchema = new mongoose.Schema(
       ref: "User",
       unique: true,
       sparse: true
+    },
+    // Métadonnées du logo (le binaire reste sur le disque / volume Docker).
+    // Champ optionnel : les anciens documents sans logo restent valides.
+    logo: {
+      type: {
+        filename: String,
+        originalName: String,
+        mimeType: String,
+        size: Number,
+        url: String,
+        uploadedAt: Date
+      },
+      default: undefined,
+      _id: false
     }
   },
   {

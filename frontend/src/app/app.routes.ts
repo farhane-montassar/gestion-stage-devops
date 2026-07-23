@@ -6,6 +6,7 @@ import { StudentsComponent } from './pages/students/students.component';
 import { CompaniesComponent } from './pages/companies/companies.component';
 import { OffersComponent } from './pages/offers/offers.component';
 import { ApplicationsComponent } from './pages/applications/applications.component';
+import { ProfileComponent } from './pages/profile/profile.component';
 import { LayoutComponent } from './components/layout/layout.component';
 import { authGuard } from './guards/auth.guard';
 import { roleGuard } from './guards/role.guard';
@@ -38,7 +39,10 @@ export const routes: Routes = [
 
       // Accessibles à tous les rôles connectés (gestion fine gérée dans les composants)
       { path: 'offers', component: OffersComponent },
-      { path: 'applications', component: ApplicationsComponent }
+      { path: 'applications', component: ApplicationsComponent },
+
+      // Profil : CV (student) / logo (company). Contenu gated par rôle.
+      { path: 'profile', component: ProfileComponent }
     ]
   },
 

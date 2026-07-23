@@ -1,5 +1,38 @@
+const fs = require("fs");
+const path = require("path");
 const Student = require("../models/student.model");
 const User = require("../models/user.model");
+const { CV_DIR } = require("../middleware/upload.middleware");
+
+// Supprime un fichier physique sans planter si absent (ENOENT ignoré).
+async function safeUnlink(dir, filename) {
+  if (!filename) return;
+  try {
+    await fs.promises.unlink(path.join(dir, path.basename(filename)));
+  } catch (err) {
+    if (err.code !== "ENOENT") {
+      console.error("Suppression fichier échouée:", err.message);
+    }
+  }
+}
+
+// Retrouve (ou crée) le profil Student lié au compte connecté, par email.
+async function findOrCreateStudent(reqUser) {
+  const user = await User.findById(reqUser.id).select("firstName lastName email");
+  if (!user) return null;
+
+  let student = await Student.findOne({ email: user.email });
+  if (!student) {
+    student = await Student.create({
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      level: "Non spécifié",
+      domain: "Non spécifié"
+    });
+  }
+  return student;
+}
 
 exports.createStudent = async (req, res) => {
   try {
@@ -96,5 +129,72 @@ exports.getMyStudent = async (req, res) => {
     res.status(200).json(student);
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
+
+// =========================
+// Upload du CV (rôle student) — POST /api/students/me/cv
+// Le fichier a déjà été validé/enregistré par le middleware uploadCv.
+// =========================
+exports.uploadCv = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Fichier invalide" });
+    }
+
+    const student = await findOrCreateStudent(req.user);
+    if (!student) {
+      await safeUnlink(CV_DIR, req.file.filename); // pas de fichier orphelin
+      return res.status(404).json({ message: "Profil étudiant introuvable" });
+    }
+
+    // Remplacement : on supprime l'ancien CV physique s'il existe.
+    if (student.cv && student.cv.filename) {
+      await safeUnlink(CV_DIR, student.cv.filename);
+    }
+
+    // On ne stocke que des métadonnées + une URL RELATIVE (jamais de chemin absolu).
+    student.cv = {
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      size: req.file.size,
+      url: `/uploads/cv/${req.file.filename}`,
+      uploadedAt: new Date()
+    };
+    await student.save();
+
+    return res.status(200).json({
+      message: "CV téléversé avec succès",
+      cv: student.cv
+    });
+  } catch (error) {
+    // En cas d'erreur après écriture disque, on nettoie le fichier.
+    if (req.file) await safeUnlink(CV_DIR, req.file.filename);
+    console.error("Erreur uploadCv:", error.message);
+    return res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+// =========================
+// Suppression du CV (rôle student) — DELETE /api/students/me/cv
+// =========================
+exports.deleteCv = async (req, res) => {
+  try {
+    const student = await Student.findOne({ email: req.user.email });
+
+    if (!student || !student.cv || !student.cv.filename) {
+      return res.status(404).json({ message: "Aucun CV à supprimer" });
+    }
+
+    await safeUnlink(CV_DIR, student.cv.filename);
+
+    // $unset pour retirer proprement le sous-document.
+    await Student.updateOne({ _id: student._id }, { $unset: { cv: "" } });
+
+    return res.status(200).json({ message: "CV supprimé avec succès" });
+  } catch (error) {
+    console.error("Erreur deleteCv:", error.message);
+    return res.status(500).json({ message: "Erreur serveur" });
   }
 };
