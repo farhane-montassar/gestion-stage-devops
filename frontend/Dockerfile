@@ -9,7 +9,12 @@ RUN npm install
 
 COPY . .
 
-RUN npm run build
+# Configuration de build Angular.
+#  - "production" (défaut) -> apiUrl = URL Render  => CI/CD Render inchangée
+#  - "docker"              -> apiUrl = /api        => reverse proxy Nginx local
+ARG BUILD_CONFIGURATION=production
+
+RUN npm run build -- --configuration=$BUILD_CONFIGURATION
 
 # ---------- Runtime ----------
 FROM nginx:alpine

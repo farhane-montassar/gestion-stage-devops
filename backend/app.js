@@ -21,6 +21,9 @@ const app = express();
 // =========================
 const allowedOrigins = [
   "http://localhost:4200",
+  // Origines derrière le reverse proxy Nginx (docker-compose local)
+  "http://localhost",
+  "http://localhost:8080",
   "https://gestion-stage-frontend.onrender.com"
 ];
 
