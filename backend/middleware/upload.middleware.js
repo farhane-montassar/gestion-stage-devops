@@ -19,8 +19,13 @@ const fs = require("fs");
 const crypto = require("crypto");
 const multer = require("multer");
 
-// Dossiers physiques (résolus depuis backend/middleware -> backend/uploads/...)
-const UPLOAD_ROOT = path.join(__dirname, "..", "uploads");
+// Racine des uploads.
+//  - Par défaut : backend/uploads (résolu depuis backend/middleware).
+//  - Configurable via UPLOADS_DIR pour pointer vers un disque PERSISTANT
+//    (ex: Render Disk) afin que les fichiers survivent aux redéploiements.
+const UPLOAD_ROOT = process.env.UPLOADS_DIR
+  ? path.resolve(process.env.UPLOADS_DIR)
+  : path.join(__dirname, "..", "uploads");
 const CV_DIR = path.join(UPLOAD_ROOT, "cv");
 const LOGO_DIR = path.join(UPLOAD_ROOT, "logos");
 

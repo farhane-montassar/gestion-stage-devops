@@ -4,6 +4,13 @@ const Student = require("../models/student.model");
 const User = require("../models/user.model");
 const { CV_DIR } = require("../middleware/upload.middleware");
 
+// Multer décode le nom d'origine en latin1 : on le ré-interprète en UTF-8
+// pour restaurer les accents (ex: "SociÃ©tÃ©.pdf" -> "Société.pdf").
+function decodeOriginalName(name) {
+  if (!name) return name;
+  return Buffer.from(name, "latin1").toString("utf8");
+}
+
 // Supprime un fichier physique sans planter si absent (ENOENT ignoré).
 async function safeUnlink(dir, filename) {
   if (!filename) return;
@@ -156,7 +163,7 @@ exports.uploadCv = async (req, res) => {
     // On ne stocke que des métadonnées + une URL RELATIVE (jamais de chemin absolu).
     student.cv = {
       filename: req.file.filename,
-      originalName: req.file.originalname,
+      originalName: decodeOriginalName(req.file.originalname),
       mimeType: req.file.mimetype,
       size: req.file.size,
       url: `/uploads/cv/${req.file.filename}`,

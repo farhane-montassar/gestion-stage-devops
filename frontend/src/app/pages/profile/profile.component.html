@@ -15,7 +15,7 @@
     <div class="file-block" *ngIf="student?.cv as cv; else noCv">
       <div class="file-info">
         <span class="file-name">{{ cv.originalName }}</span>
-        <span class="file-size">({{ (cv.size / 1024 / 1024) | number: '1.2-2' }} Mo)</span>
+        <span class="file-size">({{ formatFileSize(cv.size) }})</span>
       </div>
       <div class="actions">
         <a class="btn btn-secondary" [href]="fileUrl(cv.url)" target="_blank" rel="noopener">
@@ -49,11 +49,19 @@
 
     <div class="file-block" *ngIf="company?.logo as logo; else noLogo">
       <div class="logo-preview">
-        <img [src]="fileUrl(logo.url)" [alt]="'Logo ' + (company?.name || '')" />
+        <img alt="Logo de l'entreprise"
+             title="Logo de l'entreprise"
+             *ngIf="!logoBroken"
+             [src]="fileUrl(logo.url)"
+             (error)="onLogoError()" />
+        <div class="logo-fallback" *ngIf="logoBroken" title="Image indisponible">
+          🏢
+        </div>
       </div>
       <div class="file-info">
         <span class="file-name">{{ logo.originalName }}</span>
-        <span class="file-size">({{ (logo.size / 1024 / 1024) | number: '1.2-2' }} Mo)</span>
+        <span class="file-size">({{ formatFileSize(logo.size) }})</span>
+        <span class="file-warning" *ngIf="logoBroken">Image indisponible sur le serveur</span>
       </div>
       <div class="actions">
         <button class="btn btn-danger" (click)="deleteLogo()" [disabled]="uploading">
