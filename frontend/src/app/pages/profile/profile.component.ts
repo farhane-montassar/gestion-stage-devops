@@ -80,9 +80,25 @@ export class ProfileComponent implements OnInit {
     }
   }
 
+  // Vrai si le fichier logo n'a pas pu être chargé (404, supprimé du disque…)
+  logoBroken = false;
+
   // URL complète d'un fichier (adaptée à l'environnement)
   fileUrl(url?: string | null): string {
     return buildFileUrl(url);
+  }
+
+  // Affiche la taille de façon lisible : octets < Ko < Mo (évite "0.00 Mo").
+  formatFileSize(bytes?: number | null): string {
+    if (!bytes || bytes <= 0) return '—';
+    if (bytes < 1024) return `${bytes} o`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
+    return `${(bytes / 1024 / 1024).toFixed(2)} Mo`;
+  }
+
+  // Le fichier image est introuvable côté serveur -> on bascule sur un état "cassé".
+  onLogoError(): void {
+    this.logoBroken = true;
   }
 
   // ----------------------- CV (étudiant) -----------------------
@@ -159,6 +175,7 @@ export class ProfileComponent implements OnInit {
     this.companyService.uploadLogo(file).subscribe({
       next: (res) => {
         if (this.company) this.company.logo = res.logo;
+        this.logoBroken = false;
         this.success = 'Logo téléversé avec succès.';
         this.uploading = false;
         input.value = '';

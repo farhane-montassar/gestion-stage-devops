@@ -4,6 +4,13 @@ const Company = require("../models/company.model");
 const User = require("../models/user.model");
 const { LOGO_DIR } = require("../middleware/upload.middleware");
 
+// Multer décode le nom d'origine en latin1 : on le ré-interprète en UTF-8
+// pour restaurer les accents (ex: "SociÃ©tÃ©.png" -> "Société.png").
+function decodeOriginalName(name) {
+  if (!name) return name;
+  return Buffer.from(name, "latin1").toString("utf8");
+}
+
 // Supprime un fichier physique sans planter si absent (ENOENT ignoré).
 async function safeUnlink(dir, filename) {
   if (!filename) return;
@@ -134,7 +141,7 @@ exports.uploadLogo = async (req, res) => {
 
     company.logo = {
       filename: req.file.filename,
-      originalName: req.file.originalname,
+      originalName: decodeOriginalName(req.file.originalname),
       mimeType: req.file.mimetype,
       size: req.file.size,
       url: `/uploads/logos/${req.file.filename}`,

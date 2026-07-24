@@ -6,7 +6,6 @@ dns.setServers([
   "1.1.1.1"
 ]);
 
-const path = require("node:path");
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
@@ -14,6 +13,10 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const connectDB = require("./config/db");
+// Source UNIQUE du dossier d'uploads : le même que celui où Multer écrit,
+// afin que la route statique serve toujours les fichiers réellement stockés
+// (y compris quand UPLOADS_DIR pointe vers un disque persistant Render).
+const { UPLOAD_ROOT } = require("./middleware/upload.middleware");
 
 const app = express();
 
@@ -81,7 +84,7 @@ app.get("/", (req, res) => {
 // =========================
 app.use(
   "/uploads",
-  express.static(path.join(__dirname, "uploads"), {
+  express.static(UPLOAD_ROOT, {
     index: false,
     dotfiles: "deny",
     redirect: false,
