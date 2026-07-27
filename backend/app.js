@@ -13,10 +13,11 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const connectDB = require("./config/db");
-// Source UNIQUE du dossier d'uploads : le même que celui où Multer écrit,
-// afin que la route statique serve toujours les fichiers réellement stockés
-// (y compris quand UPLOADS_DIR pointe vers un disque persistant Render).
+// Racine des anciens uploads locaux : sert encore les fichiers déjà présents
+// avant la migration vers Cloudinary (rétro-compat des URLs /uploads/...).
 const { UPLOAD_ROOT } = require("./middleware/upload.middleware");
+// Configure Cloudinary au démarrage (lecture des variables d'environnement).
+const { isCloudinaryConfigured } = require("./config/cloudinary");
 
 const app = express();
 
@@ -51,6 +52,14 @@ app.use(express.urlencoded({ extended: true }));
 // Connexion MongoDB
 // =========================
 connectDB();
+
+// Avertit si les identifiants Cloudinary manquent (les uploads échoueraient).
+if (!isCloudinaryConfigured()) {
+  console.warn(
+    "⚠️  Cloudinary non configuré : définissez CLOUDINARY_CLOUD_NAME, " +
+      "CLOUDINARY_API_KEY et CLOUDINARY_API_SECRET pour activer les uploads."
+  );
+}
 
 // =========================
 // Health Check (Render)

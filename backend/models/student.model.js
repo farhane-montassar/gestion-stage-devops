@@ -36,11 +36,15 @@ const studentSchema = new mongoose.Schema(
       unique: true,
       sparse: true
     },
-    // Métadonnées du CV (le binaire reste sur le disque / volume Docker).
+    // Métadonnées du CV (le binaire est stocké sur Cloudinary).
     // Champ optionnel : les anciens documents sans CV restent valides.
+    //  - url       : secure_url Cloudinary (ou ancienne URL locale /uploads/...)
+    //  - publicId  : identifiant Cloudinary pour le remplacement / la suppression
+    //  - filename  : conservé pour les anciens fichiers locaux (rétro-compat)
     cv: {
       type: {
         filename: String,
+        publicId: String,
         originalName: String,
         mimeType: String,
         size: Number,

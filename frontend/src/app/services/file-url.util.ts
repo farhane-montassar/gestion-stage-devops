@@ -1,14 +1,17 @@
 import { environment } from '../../environments/environment';
 
 /**
- * Construit l'URL complète d'un fichier téléversé à partir d'une URL relative
- * (ex: "/uploads/cv/xxx.pdf") en tenant compte de l'environnement :
+ * Construit l'URL complète d'un fichier téléversé.
  *
- *  - En LOCAL derrière Nginx : environment.apiUrl = "/api" (relatif)
- *    => on renvoie l'URL relative telle quelle (même origine, Nginx route /uploads).
+ *  - URLs Cloudinary (nouveaux uploads) : ce sont des URLs ABSOLUES
+ *    (https://res.cloudinary.com/...) => renvoyées TELLES QUELLES, on ne
+ *    préfixe JAMAIS l'URL du backend.
  *
- *  - En PROD (Render) : environment.apiUrl = "https://backend.onrender.com/api"
- *    => on dérive l'origine du backend (en retirant le suffixe /api) et on la préfixe.
+ *  - Anciennes URLs locales relatives (ex: "/uploads/cv/xxx.pdf") — rétro-compat :
+ *      * En LOCAL derrière Nginx (apiUrl = "/api") => renvoyée telle quelle
+ *        (même origine, Nginx route /uploads).
+ *      * En PROD (apiUrl = "https://backend.onrender.com/api") => on dérive
+ *        l'origine du backend (en retirant "/api") et on la préfixe.
  *
  * Ne jamais coder l'URL en dur : elle s'adapte automatiquement.
  */

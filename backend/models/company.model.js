@@ -31,11 +31,15 @@ const companySchema = new mongoose.Schema(
       unique: true,
       sparse: true
     },
-    // Métadonnées du logo (le binaire reste sur le disque / volume Docker).
+    // Métadonnées du logo (le binaire est stocké sur Cloudinary).
     // Champ optionnel : les anciens documents sans logo restent valides.
+    //  - url       : secure_url Cloudinary (ou ancienne URL locale /uploads/...)
+    //  - publicId  : identifiant Cloudinary pour le remplacement / la suppression
+    //  - filename  : conservé pour les anciens fichiers locaux (rétro-compat)
     logo: {
       type: {
         filename: String,
+        publicId: String,
         originalName: String,
         mimeType: String,
         size: Number,

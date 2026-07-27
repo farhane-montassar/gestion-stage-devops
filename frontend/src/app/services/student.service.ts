@@ -4,7 +4,10 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export interface FileMeta {
-  filename: string;
+  // Nouveaux uploads (Cloudinary) : publicId + url absolue (secure_url).
+  // Anciens uploads (local) : filename + url relative /uploads/...
+  filename?: string;
+  publicId?: string;
   originalName: string;
   mimeType: string;
   size: number;
