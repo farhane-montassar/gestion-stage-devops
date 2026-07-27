@@ -1,40 +1,30 @@
 // =============================================================
-//  Middleware d'upload sécurisé (multer)
-//  - uploadCv   : PDF uniquement, 5 Mo max      -> uploads/cv
-//  - uploadLogo : JPEG/PNG/WebP, 2 Mo max       -> uploads/logos
+//  Middleware d'upload sécurisé (multer + Cloudinary)
+//  - uploadCv   : PDF uniquement, 5 Mo max      -> Cloudinary (raw)
+//  - uploadLogo : JPEG/PNG/WebP, 2 Mo max       -> Cloudinary (image)
 //
 //  Sécurité :
 //   * liste blanche stricte des types MIME ;
-//   * extension DÉRIVÉE du type MIME (anti-spoof "cv.pdf.exe") ;
-//   * nom de fichier "timestamp-random-nom-sanitized" (unique) ;
-//   * path.basename() pour neutraliser toute traversée de répertoire ;
 //   * limite de taille + 1 seul fichier par requête ;
 //   * messages d'erreur propres (400 / 413 / 500).
 //
-//  On ne stocke JAMAIS le chemin absolu : les contrôleurs enregistrent
-//  une URL relative de la forme /uploads/cv/<fichier>.
+//  Le fichier est gardé EN MÉMOIRE (memoryStorage) puis poussé vers
+//  Cloudinary par le contrôleur. Plus aucune écriture sur le disque local.
+//
+//  UPLOAD_ROOT reste exporté uniquement pour SERVIR les anciens fichiers
+//  locaux (/uploads/...) déjà présents avant la migration (rétro-compat).
 // =============================================================
 const path = require("path");
-const fs = require("fs");
-const crypto = require("crypto");
 const multer = require("multer");
 
-// Racine des uploads.
+// Racine des anciens uploads locaux (rétro-compatibilité de lecture seule).
 //  - Par défaut : backend/uploads (résolu depuis backend/middleware).
-//  - Configurable via UPLOADS_DIR pour pointer vers un disque PERSISTANT
-//    (ex: Render Disk) afin que les fichiers survivent aux redéploiements.
+//  - Configurable via UPLOADS_DIR (ex: disque persistant Render).
 const UPLOAD_ROOT = process.env.UPLOADS_DIR
   ? path.resolve(process.env.UPLOADS_DIR)
   : path.join(__dirname, "..", "uploads");
-const CV_DIR = path.join(UPLOAD_ROOT, "cv");
-const LOGO_DIR = path.join(UPLOAD_ROOT, "logos");
 
-// S'assure que les dossiers existent (utile au 1er démarrage / volume vide).
-for (const dir of [CV_DIR, LOGO_DIR]) {
-  fs.mkdirSync(dir, { recursive: true });
-}
-
-// Correspondance stricte type MIME -> extension imposée.
+// Correspondance stricte type MIME -> extension autorisée.
 const CV_TYPES = {
   "application/pdf": ".pdf"
 };
@@ -49,36 +39,11 @@ const LOGO_TYPES = {
 const CV_MAX_SIZE = 5 * 1024 * 1024; // 5 Mo
 const LOGO_MAX_SIZE = 2 * 1024 * 1024; // 2 Mo
 
-// Nettoie le nom d'origine : on ne garde que des caractères sûrs.
-function sanitizeBaseName(originalName) {
-  // path.basename neutralise "../", "..\\", chemins absolus, etc.
-  const base = path.basename(originalName || "");
-  const withoutExt = base.replace(path.extname(base), "");
-  const safe = withoutExt
-    .normalize("NFKD")
-    .replace(/[^a-zA-Z0-9-_]/g, "-") // remplace tout caractère non sûr
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
-  return safe || "fichier";
-}
+// Le fichier reste en mémoire : aucun fichier temporaire sur le disque.
+const memoryStorage = multer.memoryStorage();
 
-// Génère un nom unique et sûr, avec extension IMPOSÉE par le type MIME.
-function buildFilename(originalName, mimeType, typeMap) {
-  const unique = `${Date.now()}-${crypto.randomBytes(6).toString("hex")}`;
-  const safeName = sanitizeBaseName(originalName);
-  const ext = typeMap[mimeType] || "";
-  return `${unique}-${safeName}${ext}`;
-}
-
-// Fabrique une instance multer (storage + filtre + limites).
-function createUploader(destDir, typeMap, maxSize) {
-  const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, destDir),
-    filename: (req, file, cb) =>
-      cb(null, buildFilename(file.originalname, file.mimetype, typeMap))
-  });
-
+// Fabrique une instance multer (memoryStorage + filtre + limites).
+function createUploader(typeMap, maxSize) {
   const fileFilter = (req, file, cb) => {
     if (typeMap[file.mimetype]) {
       return cb(null, true);
@@ -90,14 +55,14 @@ function createUploader(destDir, typeMap, maxSize) {
   };
 
   return multer({
-    storage,
+    storage: memoryStorage,
     fileFilter,
     limits: { fileSize: maxSize, files: 1 }
   });
 }
 
-const cvUploader = createUploader(CV_DIR, CV_TYPES, CV_MAX_SIZE);
-const logoUploader = createUploader(LOGO_DIR, LOGO_TYPES, LOGO_MAX_SIZE);
+const cvUploader = createUploader(CV_TYPES, CV_MAX_SIZE);
+const logoUploader = createUploader(LOGO_TYPES, LOGO_MAX_SIZE);
 
 // Traduit les erreurs multer en réponses HTTP propres.
 function sendUploadError(err, res) {
@@ -128,8 +93,6 @@ function makeUploadMiddleware(uploader, fieldName) {
 module.exports = {
   uploadCv: makeUploadMiddleware(cvUploader, "cv"),
   uploadLogo: makeUploadMiddleware(logoUploader, "logo"),
-  // Constantes exportées pour d'éventuels tests / réutilisation.
-  CV_DIR,
-  LOGO_DIR,
+  // Exporté pour servir les anciens fichiers locaux (rétro-compat).
   UPLOAD_ROOT
 };

@@ -2,7 +2,14 @@ const fs = require("fs");
 const path = require("path");
 const Company = require("../models/company.model");
 const User = require("../models/user.model");
-const { LOGO_DIR } = require("../middleware/upload.middleware");
+const { UPLOAD_ROOT } = require("../middleware/upload.middleware");
+const { uploadBuffer, destroyResource } = require("../config/cloudinary");
+
+// Les logos sont téléversés comme ressources Cloudinary "image".
+const LOGO_FOLDER = "gestion-stage/logos";
+const LOGO_RESOURCE_TYPE = "image";
+// Racine locale des anciens logos (rétro-compat : nettoyage des fichiers pré-migration).
+const LEGACY_LOGO_DIR = path.join(UPLOAD_ROOT, "logos");
 
 // Multer décode le nom d'origine en latin1 : on le ré-interprète en UTF-8
 // pour restaurer les accents (ex: "SociÃ©tÃ©.png" -> "Société.png").
@@ -11,7 +18,7 @@ function decodeOriginalName(name) {
   return Buffer.from(name, "latin1").toString("utf8");
 }
 
-// Supprime un fichier physique sans planter si absent (ENOENT ignoré).
+// Supprime un fichier physique local sans planter si absent (ENOENT ignoré).
 async function safeUnlink(dir, filename) {
   if (!filename) return;
   try {
@@ -20,6 +27,17 @@ async function safeUnlink(dir, filename) {
     if (err.code !== "ENOENT") {
       console.error("Suppression fichier échouée:", err.message);
     }
+  }
+}
+
+// Supprime l'ancien logo, qu'il soit sur Cloudinary (publicId)
+// ou un ancien fichier local (filename) d'avant la migration.
+async function removeOldLogo(logo) {
+  if (!logo) return;
+  if (logo.publicId) {
+    await destroyResource(logo.publicId, LOGO_RESOURCE_TYPE);
+  } else if (logo.filename) {
+    await safeUnlink(LEGACY_LOGO_DIR, logo.filename);
   }
 }
 
@@ -120,31 +138,36 @@ exports.getMyCompany = async (req, res) => {
 
 // =========================
 // Upload du logo (rôle company) — POST /api/companies/me/logo
-// Le fichier a déjà été validé/enregistré par le middleware uploadLogo.
+// Le fichier a déjà été validé par le middleware uploadLogo (memoryStorage).
+// Il est ici poussé vers Cloudinary, puis ses métadonnées sont persistées.
 // =========================
 exports.uploadLogo = async (req, res) => {
   try {
-    if (!req.file) {
+    if (!req.file || !req.file.buffer) {
       return res.status(400).json({ message: "Fichier invalide" });
     }
 
     const company = await findOrCreateCompany(req.user);
     if (!company) {
-      await safeUnlink(LOGO_DIR, req.file.filename);
       return res.status(404).json({ message: "Profil entreprise introuvable" });
     }
 
-    // Remplacement : suppression de l'ancien logo physique.
-    if (company.logo && company.logo.filename) {
-      await safeUnlink(LOGO_DIR, company.logo.filename);
-    }
+    // Téléversement du buffer (en mémoire) vers Cloudinary.
+    const result = await uploadBuffer(req.file.buffer, {
+      folder: LOGO_FOLDER,
+      resourceType: LOGO_RESOURCE_TYPE,
+      originalName: req.file.originalname
+    });
+
+    // Remplacement : suppression de l'ancien logo (Cloudinary ou local legacy).
+    await removeOldLogo(company.logo);
 
     company.logo = {
-      filename: req.file.filename,
+      publicId: result.public_id,
       originalName: decodeOriginalName(req.file.originalname),
       mimeType: req.file.mimetype,
       size: req.file.size,
-      url: `/uploads/logos/${req.file.filename}`,
+      url: result.secure_url,
       uploadedAt: new Date()
     };
     await company.save();
@@ -154,7 +177,6 @@ exports.uploadLogo = async (req, res) => {
       logo: company.logo
     });
   } catch (error) {
-    if (req.file) await safeUnlink(LOGO_DIR, req.file.filename);
     console.error("Erreur uploadLogo:", error.message);
     return res.status(500).json({ message: "Erreur serveur" });
   }
@@ -167,11 +189,16 @@ exports.deleteLogo = async (req, res) => {
   try {
     const company = await Company.findOne({ email: req.user.email });
 
-    if (!company || !company.logo || !company.logo.filename) {
+    if (
+      !company ||
+      !company.logo ||
+      (!company.logo.publicId && !company.logo.filename)
+    ) {
       return res.status(404).json({ message: "Aucun logo à supprimer" });
     }
 
-    await safeUnlink(LOGO_DIR, company.logo.filename);
+    // Supprime la ressource Cloudinary (ou l'ancien fichier local).
+    await removeOldLogo(company.logo);
     await Company.updateOne({ _id: company._id }, { $unset: { logo: "" } });
 
     return res.status(200).json({ message: "Logo supprimé avec succès" });

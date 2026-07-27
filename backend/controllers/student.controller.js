@@ -2,7 +2,14 @@ const fs = require("fs");
 const path = require("path");
 const Student = require("../models/student.model");
 const User = require("../models/user.model");
-const { CV_DIR } = require("../middleware/upload.middleware");
+const { UPLOAD_ROOT } = require("../middleware/upload.middleware");
+const { uploadBuffer, destroyResource } = require("../config/cloudinary");
+
+// Les CV sont téléversés comme ressources Cloudinary "raw" (PDF servi tel quel).
+const CV_FOLDER = "gestion-stage/cv";
+const CV_RESOURCE_TYPE = "raw";
+// Racine locale des anciens CV (rétro-compat : nettoyage des fichiers pré-migration).
+const LEGACY_CV_DIR = path.join(UPLOAD_ROOT, "cv");
 
 // Multer décode le nom d'origine en latin1 : on le ré-interprète en UTF-8
 // pour restaurer les accents (ex: "SociÃ©tÃ©.pdf" -> "Société.pdf").
@@ -11,7 +18,7 @@ function decodeOriginalName(name) {
   return Buffer.from(name, "latin1").toString("utf8");
 }
 
-// Supprime un fichier physique sans planter si absent (ENOENT ignoré).
+// Supprime un fichier physique local sans planter si absent (ENOENT ignoré).
 async function safeUnlink(dir, filename) {
   if (!filename) return;
   try {
@@ -20,6 +27,17 @@ async function safeUnlink(dir, filename) {
     if (err.code !== "ENOENT") {
       console.error("Suppression fichier échouée:", err.message);
     }
+  }
+}
+
+// Supprime l'ancien CV, qu'il soit sur Cloudinary (publicId)
+// ou un ancien fichier local (filename) d'avant la migration.
+async function removeOldCv(cv) {
+  if (!cv) return;
+  if (cv.publicId) {
+    await destroyResource(cv.publicId, CV_RESOURCE_TYPE);
+  } else if (cv.filename) {
+    await safeUnlink(LEGACY_CV_DIR, cv.filename);
   }
 }
 
@@ -141,32 +159,37 @@ exports.getMyStudent = async (req, res) => {
 
 // =========================
 // Upload du CV (rôle student) — POST /api/students/me/cv
-// Le fichier a déjà été validé/enregistré par le middleware uploadCv.
+// Le fichier a déjà été validé par le middleware uploadCv (memoryStorage).
+// Il est ici poussé vers Cloudinary, puis ses métadonnées sont persistées.
 // =========================
 exports.uploadCv = async (req, res) => {
   try {
-    if (!req.file) {
+    if (!req.file || !req.file.buffer) {
       return res.status(400).json({ message: "Fichier invalide" });
     }
 
     const student = await findOrCreateStudent(req.user);
     if (!student) {
-      await safeUnlink(CV_DIR, req.file.filename); // pas de fichier orphelin
       return res.status(404).json({ message: "Profil étudiant introuvable" });
     }
 
-    // Remplacement : on supprime l'ancien CV physique s'il existe.
-    if (student.cv && student.cv.filename) {
-      await safeUnlink(CV_DIR, student.cv.filename);
-    }
+    // Téléversement du buffer (en mémoire) vers Cloudinary.
+    const result = await uploadBuffer(req.file.buffer, {
+      folder: CV_FOLDER,
+      resourceType: CV_RESOURCE_TYPE,
+      originalName: req.file.originalname
+    });
 
-    // On ne stocke que des métadonnées + une URL RELATIVE (jamais de chemin absolu).
+    // Remplacement : suppression de l'ancien CV (Cloudinary ou local legacy).
+    await removeOldCv(student.cv);
+
+    // On stocke l'URL sécurisée Cloudinary + le public_id (pour suppression future).
     student.cv = {
-      filename: req.file.filename,
+      publicId: result.public_id,
       originalName: decodeOriginalName(req.file.originalname),
       mimeType: req.file.mimetype,
       size: req.file.size,
-      url: `/uploads/cv/${req.file.filename}`,
+      url: result.secure_url,
       uploadedAt: new Date()
     };
     await student.save();
@@ -176,8 +199,6 @@ exports.uploadCv = async (req, res) => {
       cv: student.cv
     });
   } catch (error) {
-    // En cas d'erreur après écriture disque, on nettoie le fichier.
-    if (req.file) await safeUnlink(CV_DIR, req.file.filename);
     console.error("Erreur uploadCv:", error.message);
     return res.status(500).json({ message: "Erreur serveur" });
   }
@@ -190,11 +211,12 @@ exports.deleteCv = async (req, res) => {
   try {
     const student = await Student.findOne({ email: req.user.email });
 
-    if (!student || !student.cv || !student.cv.filename) {
+    if (!student || !student.cv || (!student.cv.publicId && !student.cv.filename)) {
       return res.status(404).json({ message: "Aucun CV à supprimer" });
     }
 
-    await safeUnlink(CV_DIR, student.cv.filename);
+    // Supprime la ressource Cloudinary (ou l'ancien fichier local).
+    await removeOldCv(student.cv);
 
     // $unset pour retirer proprement le sous-document.
     await Student.updateOne({ _id: student._id }, { $unset: { cv: "" } });
