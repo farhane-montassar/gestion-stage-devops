@@ -9,6 +9,7 @@ dns.setServers([
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const mongoose = require("mongoose");
 
 dotenv.config();
 
@@ -18,6 +19,12 @@ const connectDB = require("./config/db");
 const { UPLOAD_ROOT } = require("./middleware/upload.middleware");
 // Configure Cloudinary au démarrage (lecture des variables d'environnement).
 const { isCloudinaryConfigured } = require("./config/cloudinary");
+// Monitoring : collecte des métriques HTTP + registre Prometheus.
+const metricsMiddleware = require("./middleware/metrics.middleware");
+const { register } = require("./config/metrics");
+// Version applicative exposée par /health : lue une seule fois au démarrage
+// depuis package.json (présent dans l'image Docker via COPY . .).
+const { version: APP_VERSION } = require("./package.json");
 
 const app = express();
 
@@ -49,6 +56,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // =========================
+// Monitoring
+// Enregistré AVANT toutes les routes API pour instrumenter chaque requête
+// (compteur + histogramme de durée renseignés sur l'évènement "finish").
+// =========================
+app.use(metricsMiddleware);
+
+// =========================
 // Connexion MongoDB
 // =========================
 connectDB();
@@ -70,6 +84,52 @@ app.get("/api/health", (req, res) => {
     message: "Gestion Stage API is running",
     timestamp: new Date().toISOString()
   });
+});
+
+// =========================
+// Health Check applicatif (monitoring / orchestrateur)
+//  - 200 si MongoDB est connecté ;
+//  - 503 sinon (l'orchestrateur peut retirer l'instance du pool).
+// =========================
+const MONGO_STATES = {
+  0: "disconnected",
+  1: "connected",
+  2: "connecting",
+  3: "disconnecting"
+};
+
+app.get("/health", (req, res) => {
+  const readyState = mongoose.connection.readyState;
+  const isDatabaseConnected = readyState === 1;
+
+  // Un health check ne doit jamais être servi depuis un cache
+  // (proxy Render / Nginx) : la réponse doit refléter l'état courant.
+  res.set("Cache-Control", "no-store");
+
+  res.status(isDatabaseConnected ? 200 : 503).json({
+    status: isDatabaseConnected ? "ok" : "unavailable",
+    database: MONGO_STATES[readyState] || "unknown",
+    // Secondes écoulées depuis le démarrage du process (arrondi 3 décimales).
+    uptime: Number(process.uptime().toFixed(3)),
+    timestamp: new Date().toISOString(),
+    version: APP_VERSION
+  });
+});
+
+// =========================
+// Métriques Prometheus (format texte exposition)
+// register.metrics() est asynchrone : les erreurs sont déléguées au
+// gestionnaire d'erreurs global via next(err).
+// =========================
+app.get("/metrics", async (req, res, next) => {
+  try {
+    const metrics = await register.metrics();
+
+    res.set("Content-Type", register.contentType);
+    res.status(200).send(metrics);
+  } catch (err) {
+    next(err);
+  }
 });
 
 // =========================

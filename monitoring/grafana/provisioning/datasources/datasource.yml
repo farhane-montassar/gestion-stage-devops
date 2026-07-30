@@ -1,0 +1,30 @@
+# =========================================================
+#  Provisioning Grafana - Source de données Prometheus
+#
+#  Ce fichier est lu AU DÉMARRAGE de Grafana (monté dans
+#  /etc/grafana/provisioning/datasources). Il évite toute
+#  configuration manuelle via l'interface web : la source de
+#  données est créée automatiquement et définie par défaut.
+# =========================================================
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    # "proxy" : c'est le SERVEUR Grafana qui interroge Prometheus
+    # (et non le navigateur). L'URL est donc résolue à l'intérieur
+    # du réseau Docker, pas depuis la machine hôte.
+    access: proxy
+    # "prometheus" = nom du service docker-compose, résolu par le
+    # DNS interne de Docker sur le réseau app-network.
+    url: http://prometheus:9090
+    # Source de données sélectionnée par défaut dans les dashboards.
+    isDefault: true
+    # Permet à Grafana de mettre à jour la source si ce fichier change.
+    editable: true
+    uid: prometheus
+    jsonData:
+      # Aligné sur scrape_interval de monitoring/prometheus.yml :
+      # évite que Grafana demande des points plus fins qu'ils n'existent.
+      timeInterval: 15s
+      httpMethod: POST
