@@ -1,0 +1,61 @@
+# =========================================================
+#  Configuration Prometheus - Gestion de Stages
+#  Scrape les métriques exposées par le backend Express
+#  sur /metrics (prom-client, registre "gestion_stage_").
+# =========================================================
+global:
+  # Fréquence de collecte des métriques.
+  scrape_interval: 15s
+  # Fréquence d'évaluation des règles (aligné sur le scrape).
+  evaluation_interval: 15s
+  # Abandon d'un scrape trop lent : doit rester < scrape_interval.
+  scrape_timeout: 10s
+  # Labels ajoutés à toutes les séries (utile si plusieurs environnements
+  # remontent un jour vers le même Prometheus).
+  external_labels:
+    environment: "local"
+
+scrape_configs:
+  # -------------------------------------------------------
+  #  Backend Express (cible principale)
+  # -------------------------------------------------------
+  - job_name: "gestion-stage-backend"
+    metrics_path: /metrics
+    static_configs:
+      # "backend" = nom du service docker-compose, résolu par le DNS
+      # interne de Docker sur le réseau app-network.
+      # Port 5000 = port INTERNE du conteneur (pas le port publié).
+      - targets: ["backend:5000"]
+        labels:
+          application: "gestion-stage"
+          component: "backend"
+
+  # -------------------------------------------------------
+  #  Prometheus lui-même : permet de vérifier que le serveur
+  #  de collecte est sain (up, durée des scrapes, erreurs).
+  # -------------------------------------------------------
+  - job_name: "prometheus"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["localhost:9090"]
+        labels:
+          application: "gestion-stage"
+          component: "prometheus"
+
+  # -------------------------------------------------------
+  #  OPTIONNEL - Backend déployé sur Render.
+  #  Décommenter pour scraper l'instance de production depuis
+  #  ce Prometheus local. Nécessite scheme "https" et le nom
+  #  d'hôte SANS protocole ni slash final dans "targets".
+  #  Attention : Render met les services gratuits en veille,
+  #  la cible apparaîtra alors DOWN entre deux réveils.
+  # -------------------------------------------------------
+  # - job_name: "gestion-stage-backend-render"
+  #   scheme: https
+  #   metrics_path: /metrics
+  #   static_configs:
+  #     - targets: ["gestion-stage-backend.onrender.com"]
+  #       labels:
+  #         application: "gestion-stage"
+  #         component: "backend"
+  #         environment: "render"

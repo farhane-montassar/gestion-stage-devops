@@ -69,6 +69,65 @@ services:
     networks:
       - app-network
 
+  # =========================================================
+  #  Monitoring
+  #  Prometheus ──► scrape http://backend:5000/metrics (15s)
+  #  Grafana    ──► lit Prometheus comme source de données
+  #                 http://localhost:3001 (admin/admin par défaut)
+  # =========================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: gestion_stage_prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      # Configuration montée en lecture seule (ro) : Prometheus n'a
+      # jamais besoin d'y écrire.
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Volume NOMMÉ : les séries temporelles survivent à un restart.
+      - prometheus_data:/prometheus
+    command:
+      # On redéclare les flags par défaut car spécifier "command" les écrase.
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      # Rétention : 15 jours de séries temporelles (évite que le volume
+      # ne grossisse indéfiniment sur un poste de dev).
+      - "--storage.tsdb.retention.time=15d"
+      # Active /-/reload et /-/quit (rechargement de conf sans restart).
+      - "--web.enable-lifecycle"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: gestion_stage_grafana
+    restart: unless-stopped
+    ports:
+      # Grafana écoute sur 3000 dans le conteneur, publié sur 3001
+      # côté hôte pour ne pas entrer en conflit avec un dev server.
+      - "3001:3000"
+    environment:
+      # Identifiants admin (surchargeables depuis le .env racine).
+      # Valeurs par défaut adaptées à un usage LOCAL uniquement.
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      # Pas d'inscription libre : seul l'admin peut créer des comptes.
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      # Volume NOMMÉ : dashboards, sources de données et utilisateurs
+      # survivent à un restart / rebuild.
+      - grafana_data:/var/lib/grafana
+      # Provisioning : la source de données Prometheus est créée
+      # automatiquement au démarrage (aucun clic dans l'UI).
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - app-network
+
 # Réseau Docker partagé : c'est lui qui permet aux conteneurs
 # de communiquer entre eux par leur NOM DE SERVICE (dns interne Docker).
 networks:
@@ -78,3 +137,5 @@ networks:
 volumes:
   mongo_data:
   uploads_data:
+  prometheus_data:
+  grafana_data:
